@@ -1,0 +1,36 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+#map-container {
+  display: flex;
+  height: 100vh; /* Adjust based on design needs */
+}
+
+#day-map,
+#night-map {
+  flex: 1;
+  height: 100%;
+}
+
+.flower-center {
+  fill: white;
+  stroke: black;
+  stroke-width: 1;
+}
+
+.petal {
+  fill: none;
+  stroke-width: 2;
+}
+
+.petal-drug {
+  stroke: red;
+}
+
+.petal-financial {
+  stroke: blue;
+}
+
+/* Add more styles for petals as needed */
