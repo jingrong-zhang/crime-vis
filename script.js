@@ -1,6 +1,6 @@
 // Load the CSV data
 async function loadData() {
-  const response = await fetch("data/data_pivot_year.csv");
+  const response = await fetch("data/data_pivot_quarter.csv");
   const text = await response.text();
 
   // Parse CSV data
@@ -189,8 +189,8 @@ function createFlowerSVG(values) {
 }
 
 // Add flowers to maps
-function addFlowersToMap(map, data, filter) {
-  data.filter(filter).forEach((row) => {
+function addFlowersToMap(map, data) {
+  data.forEach((row) => {
     const flowerSVG = createFlowerSVG(row);
     const icon = L.divIcon({
       html: flowerSVG.outerHTML,
@@ -202,11 +202,131 @@ function addFlowersToMap(map, data, filter) {
   });
 }
 
+function createLineChart(containerId, data, crimeTypes) {
+  const svgWidth = 400;
+  const svgHeight = 150;
+  const margin = { top: 10, right: 30, bottom: 30, left: 40 };
+
+  const width = svgWidth - margin.left - margin.right;
+  const height = svgHeight - margin.top - margin.bottom;
+
+  const svg = d3
+    .select(`#${containerId}`)
+    .append("svg")
+    .attr("width", svgWidth)
+    .attr("height", svgHeight);
+
+  const chart = svg
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const timeExtent = d3.extent(data, (d) => d.time);
+  const timeScale = d3.scaleLinear().domain(timeExtent).range([0, width]);
+
+  const crimeMax = d3.max(data, (d) =>
+    Math.max(...crimeTypes.map((type) => d[type]))
+  );
+  const crimeScale = d3.scaleLinear().domain([0, crimeMax]).range([height, 0]);
+
+  // Add axes
+  chart
+    .append("g")
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(timeScale).tickFormat(d3.format("d")));
+
+  chart.append("g").call(d3.axisLeft(crimeScale));
+
+  // Add lines and dots for each crime type
+  crimeTypes.forEach((type) => {
+    // Draw the line
+    const line = d3
+      .line()
+      .x((d) => timeScale(d.time))
+      .y((d) => crimeScale(d[type]));
+
+    chart
+      .append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", getColor(type))
+      .attr("stroke-width", 2)
+      .attr("d", line);
+
+    // Add dots at each data point
+    chart
+      .selectAll(`.dot-${type}`)
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("class", `dot dot-${type}`)
+      .attr("cx", (d) => timeScale(d.time))
+      .attr("cy", (d) => crimeScale(d[type]))
+      .attr("r", 3)
+      .attr("fill", getColor(type));
+  });
+}
+
+function getColor(type) {
+  const colorMap = {
+    drug: "red",
+    financial: "blue",
+    low_level_property: "green",
+    low_level_violent: "orange",
+    non_criminal: "purple",
+    public_order: "yellow",
+    severe_property: "brown",
+    severe_violent: "pink",
+    sexual_offenses: "teal",
+    weapon: "gray",
+  };
+  return colorMap[type] || "black";
+}
+
+function aggregateDataByTime(data, crimeTypes) {
+  const aggregated = d3.rollups(
+    data,
+    (group) => {
+      const aggregatedRow = { time: group[0].time };
+      crimeTypes.forEach((type) => {
+        aggregatedRow[type] = d3.sum(group, (d) => d[type]);
+      });
+      return aggregatedRow;
+    },
+    (d) => d.time
+  );
+
+  // Flatten the grouped data into an array
+  return aggregated.map(([, values]) => values);
+}
+
 // Synchronize dayMap and nightMap
 syncMaps(dayMap, nightMap);
 syncMaps(nightMap, dayMap);
 
 loadData().then((data) => {
-  addFlowersToMap(dayMap, data, (row) => row.DN === "D");
-  addFlowersToMap(nightMap, data, (row) => row.DN === "N");
+  const dayData = data.filter((d) => d.DN === "D");
+  const nightData = data.filter((d) => d.DN === "N");
+
+  addFlowersToMap(dayMap, dayData);
+  addFlowersToMap(nightMap, nightData);
+  const crimeTypes = [
+    "drug",
+    "financial",
+    "low_level_property",
+    "low_level_violent",
+    "non_criminal",
+    "public_order",
+    "severe_property",
+    "severe_violent",
+    "sexual_offenses",
+    "weapon",
+  ];
+
+  const aggregatedDayData = aggregateDataByTime(dayData, crimeTypes);
+  const aggregatedNightData = aggregateDataByTime(nightData, crimeTypes);
+  console.log(aggregatedDayData);
+  console.log(aggregatedNightData);
+
+  createLineChart("day-chart", aggregatedDayData, crimeTypes);
+  createLineChart("night-chart", aggregatedNightData, crimeTypes);
 });

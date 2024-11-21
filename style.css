@@ -3,6 +3,25 @@ body {
   font-family: Arial, sans-serif;
 }
 
+.chart-container {
+  height: 150px;
+  width: 50%;
+  position: absolute;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  border-top: 1px solid red;
+  z-index: 1000;
+}
+
+#day-chart {
+  left: 0;
+}
+
+#night-chart {
+  right: 0;
+}
+
 #map-container {
   display: flex;
   height: 100vh;
