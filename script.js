@@ -50,9 +50,8 @@ async function loadData() {
   return data;
 }
 
-// Initialize maps
-const dayMap = L.map("day-map").setView([41.8, -87.7], 11);
-const nightMap = L.map("night-map").setView([41.8, -87.7], 11);
+const dayMap = L.map("day-map", { minZoom: 10 }).setView([41.8, -87.7], 11);
+const nightMap = L.map("night-map", { minZoom: 10 }).setView([41.8, -87.7], 11);
 
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
   attribution:
@@ -210,10 +209,35 @@ function getGlobalMax(data1, data2, crimeTypes) {
   );
 }
 
-function createLineChart(containerId, data, crimeTypes, globalMax) {
-  const svgWidth = 400;
-  const svgHeight = 150;
-  const margin = { top: 10, right: 30, bottom: 30, left: 40 };
+function filterDataByTime(data, startTime, endTime) {
+  return data.filter((d) => d.time >= startTime && d.time <= endTime);
+}
+
+function onBrushEnd(start, end) {
+  const filteredDayData = filterDataByTime(dayData, start, end);
+  const filteredNightData = filterDataByTime(nightData, start, end);
+
+  // Clear existing markers
+  dayMap.eachLayer((layer) => {
+    if (layer instanceof L.Marker) {
+      dayMap.removeLayer(layer);
+    }
+  });
+  nightMap.eachLayer((layer) => {
+    if (layer instanceof L.Marker) {
+      nightMap.removeLayer(layer);
+    }
+  });
+
+  // Add new markers for the filtered data
+  addFlowersToMap(dayMap, filteredDayData);
+  addFlowersToMap(nightMap, filteredNightData);
+}
+
+function createLineChart(containerId, data, crimeTypes, globalMax, onBrushEnd) {
+  const svgWidth = 600;
+  const svgHeight = 190;
+  const margin = { top: 30, right: 30, bottom: 50, left: 100 };
 
   const width = svgWidth - margin.left - margin.right;
   const height = svgHeight - margin.top - margin.bottom;
@@ -236,27 +260,16 @@ function createLineChart(containerId, data, crimeTypes, globalMax) {
 
   const crimeScale = d3.scaleLinear().domain([0, globalMax]).range([height, 0]);
 
-  // Extract unique time values from the data
-  const uniqueTimes = [...new Set(data.map((d) => d.time))];
-
   chart
     .append("g")
     .attr("transform", `translate(0,${height})`)
-    .call(
-      d3
-        .axisBottom(timeScale)
-        .tickValues(uniqueTimes) // Use unique integer values
-        .tickFormat(d3.format("d")) // Force integer formatting
-    );
+    .call(d3.axisBottom(timeScale).tickFormat(d3.format("d")));
 
   chart.append("g").call(d3.axisLeft(crimeScale));
 
-  // Sort the data by time
   const sortedData = data.sort((a, b) => a.time - b.time);
 
-  // Add lines and dots for each crime type
   crimeTypes.forEach((type) => {
-    // Draw the line
     const line = d3
       .line()
       .x((d) => timeScale(d.time))
@@ -264,16 +277,15 @@ function createLineChart(containerId, data, crimeTypes, globalMax) {
 
     chart
       .append("path")
-      .datum(sortedData) // Use sorted data
+      .datum(sortedData)
       .attr("fill", "none")
       .attr("stroke", getColor(type))
       .attr("stroke-width", 2)
       .attr("d", line);
 
-    // Add dots at each data point
-    chart
+    const dots = chart
       .selectAll(`.dot-${type}`)
-      .data(sortedData) // Use sorted data
+      .data(sortedData)
       .enter()
       .append("circle")
       .attr("class", `dot dot-${type}`)
@@ -281,6 +293,42 @@ function createLineChart(containerId, data, crimeTypes, globalMax) {
       .attr("cy", (d) => crimeScale(d[type]))
       .attr("r", 3)
       .attr("fill", getColor(type));
+
+    // Store reference to dots for updating size later
+    dots.each(function (d) {
+      d.dotElement = this;
+    });
+  });
+
+  const brush = d3.brushX().extent([
+    [0, 0],
+    [width, height],
+  ]);
+
+  const singleFrameWidth =
+    timeScale(timeExtent[0] + 1) - timeScale(timeExtent[0]);
+
+  chart
+    .append("g")
+    .attr("class", "brush")
+    .call(brush)
+    .call(brush.move, [
+      timeScale(timeExtent[0]),
+      timeScale(timeExtent[0]) + singleFrameWidth * 0.8,
+    ]);
+
+  brush.on("end", (event) => {
+    const selection = event.selection;
+    if (selection) {
+      const [start, end] = selection.map(timeScale.invert);
+      // console.log(selection);
+      console.log([start, end]);
+      onBrushEnd(start, end);
+
+      chart
+        .selectAll(".dot")
+        .attr("r", (d) => (d.time >= start && d.time <= end ? 6 : 3));
+    }
   });
 }
 
@@ -321,9 +369,14 @@ function aggregateDataByTime(data, crimeTypes) {
 syncMaps(dayMap, nightMap);
 syncMaps(nightMap, dayMap);
 
+// Declare these variables globally
+let dayData = [];
+let nightData = [];
+
+// Load the CSV data
 loadData().then((data) => {
-  const dayData = data.filter((d) => d.DN === "D");
-  const nightData = data.filter((d) => d.DN === "N");
+  dayData = data.filter((d) => d.DN === "D");
+  nightData = data.filter((d) => d.DN === "N");
 
   addFlowersToMap(dayMap, dayData);
   addFlowersToMap(nightMap, nightData);
@@ -344,14 +397,24 @@ loadData().then((data) => {
   const aggregatedDayData = aggregateDataByTime(dayData, crimeTypes);
   const aggregatedNightData = aggregateDataByTime(nightData, crimeTypes);
 
-  // Calculate the shared global maximum
   const globalMax = getGlobalMax(
     aggregatedDayData,
     aggregatedNightData,
     crimeTypes
   );
 
-  // Create charts with the shared y-axis scale
-  createLineChart("day-chart", aggregatedDayData, crimeTypes, globalMax);
-  createLineChart("night-chart", aggregatedNightData, crimeTypes, globalMax);
+  createLineChart(
+    "day-chart",
+    aggregatedDayData,
+    crimeTypes,
+    globalMax,
+    (start, end) => onBrushEnd(start, end)
+  );
+  createLineChart(
+    "night-chart",
+    aggregatedNightData,
+    crimeTypes,
+    globalMax,
+    (start, end) => onBrushEnd(start, end)
+  );
 });
