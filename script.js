@@ -308,21 +308,28 @@ function createLineChart(containerId, data, crimeTypes, globalMax, onBrushEnd) {
   const singleFrameWidth =
     timeScale(timeExtent[0] + 1) - timeScale(timeExtent[0]);
 
-  chart
+  const initialBrushRange = [
+    timeScale(timeExtent[0]),
+    timeScale(timeExtent[0]) + singleFrameWidth * 0.99,
+  ];
+
+  const brushGroup = chart
     .append("g")
     .attr("class", "brush")
     .call(brush)
-    .call(brush.move, [
-      timeScale(timeExtent[0]),
-      timeScale(timeExtent[0]) + singleFrameWidth * 0.8,
-    ]);
+    .call(brush.move, initialBrushRange);
+
+  const [start, end] = initialBrushRange.map(timeScale.invert);
+  onBrushEnd(start, end);
+
+  chart
+    .selectAll(".dot")
+    .attr("r", (d) => (d.time >= start && d.time <= end ? 6 : 3));
 
   brush.on("end", (event) => {
     const selection = event.selection;
     if (selection) {
       const [start, end] = selection.map(timeScale.invert);
-      // console.log(selection);
-      console.log([start, end]);
       onBrushEnd(start, end);
 
       chart
