@@ -1,6 +1,6 @@
 // Load the CSV data
 async function loadData() {
-  const response = await fetch("data/data_pivot.csv");
+  const response = await fetch("data/data_pivot_year.csv");
   const text = await response.text();
 
   // Parse CSV data
@@ -10,6 +10,7 @@ async function loadData() {
       cluster,
       centroid_lat,
       centroid_lon,
+      time,
       DN,
       all,
       drug,
@@ -28,6 +29,7 @@ async function loadData() {
       cluster: parseInt(cluster),
       centroid_lat: parseFloat(centroid_lat),
       centroid_lon: parseFloat(centroid_lon),
+      time: parseInt(time),
       DN,
       all: parseInt(all),
       drug: parseInt(drug),
@@ -44,7 +46,6 @@ async function loadData() {
   });
 
   return data;
-  console.log(data);
 }
 
 // Initialize maps
