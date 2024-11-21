@@ -228,13 +228,18 @@ function createLineChart(containerId, data, crimeTypes) {
   );
   const crimeScale = d3.scaleLinear().domain([0, crimeMax]).range([height, 0]);
 
-  // Add axes
+  // Extract unique time values from the data
+  const uniqueTimes = [...new Set(data.map((d) => d.time))];
+
   chart
     .append("g")
     .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(timeScale).tickFormat(d3.format("d")));
+    .call(d3.axisBottom(timeScale).tickValues(uniqueTimes));
 
   chart.append("g").call(d3.axisLeft(crimeScale));
+
+  // Sort the data by time
+  const sortedData = data.sort((a, b) => a.time - b.time);
 
   // Add lines and dots for each crime type
   crimeTypes.forEach((type) => {
@@ -246,7 +251,7 @@ function createLineChart(containerId, data, crimeTypes) {
 
     chart
       .append("path")
-      .datum(data)
+      .datum(sortedData) // Use sorted data
       .attr("fill", "none")
       .attr("stroke", getColor(type))
       .attr("stroke-width", 2)
@@ -255,7 +260,7 @@ function createLineChart(containerId, data, crimeTypes) {
     // Add dots at each data point
     chart
       .selectAll(`.dot-${type}`)
-      .data(data)
+      .data(sortedData) // Use sorted data
       .enter()
       .append("circle")
       .attr("class", `dot dot-${type}`)
