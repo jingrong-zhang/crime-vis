@@ -1,6 +1,8 @@
 // Load the CSV data
 async function loadData() {
-  const response = await fetch("data/data_pivot_quarter.csv");
+  // const response = await fetch("data/data_pivot_year.csv");
+  // const response = await fetch("data/data_pivot_quarter.csv");
+  const response = await fetch("data/data_pivot_month.csv");
   const text = await response.text();
 
   // Parse CSV data
@@ -202,7 +204,13 @@ function addFlowersToMap(map, data) {
   });
 }
 
-function createLineChart(containerId, data, crimeTypes) {
+function getGlobalMax(data1, data2, crimeTypes) {
+  return d3.max([...data1, ...data2], (d) =>
+    Math.max(...crimeTypes.map((type) => d[type]))
+  );
+}
+
+function createLineChart(containerId, data, crimeTypes, globalMax) {
   const svgWidth = 400;
   const svgHeight = 150;
   const margin = { top: 10, right: 30, bottom: 30, left: 40 };
@@ -221,12 +229,12 @@ function createLineChart(containerId, data, crimeTypes) {
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   const timeExtent = d3.extent(data, (d) => d.time);
-  const timeScale = d3.scaleLinear().domain(timeExtent).range([0, width]);
+  const timeScale = d3
+    .scaleLinear()
+    .domain([Math.floor(timeExtent[0]), Math.ceil(timeExtent[1])]) // Ensure domain is integer
+    .range([0, width]);
 
-  const crimeMax = d3.max(data, (d) =>
-    Math.max(...crimeTypes.map((type) => d[type]))
-  );
-  const crimeScale = d3.scaleLinear().domain([0, crimeMax]).range([height, 0]);
+  const crimeScale = d3.scaleLinear().domain([0, globalMax]).range([height, 0]);
 
   // Extract unique time values from the data
   const uniqueTimes = [...new Set(data.map((d) => d.time))];
@@ -234,7 +242,12 @@ function createLineChart(containerId, data, crimeTypes) {
   chart
     .append("g")
     .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(timeScale).tickValues(uniqueTimes));
+    .call(
+      d3
+        .axisBottom(timeScale)
+        .tickValues(uniqueTimes) // Use unique integer values
+        .tickFormat(d3.format("d")) // Force integer formatting
+    );
 
   chart.append("g").call(d3.axisLeft(crimeScale));
 
@@ -314,6 +327,7 @@ loadData().then((data) => {
 
   addFlowersToMap(dayMap, dayData);
   addFlowersToMap(nightMap, nightData);
+
   const crimeTypes = [
     "drug",
     "financial",
@@ -329,9 +343,15 @@ loadData().then((data) => {
 
   const aggregatedDayData = aggregateDataByTime(dayData, crimeTypes);
   const aggregatedNightData = aggregateDataByTime(nightData, crimeTypes);
-  console.log(aggregatedDayData);
-  console.log(aggregatedNightData);
 
-  createLineChart("day-chart", aggregatedDayData, crimeTypes);
-  createLineChart("night-chart", aggregatedNightData, crimeTypes);
+  // Calculate the shared global maximum
+  const globalMax = getGlobalMax(
+    aggregatedDayData,
+    aggregatedNightData,
+    crimeTypes
+  );
+
+  // Create charts with the shared y-axis scale
+  createLineChart("day-chart", aggregatedDayData, crimeTypes, globalMax);
+  createLineChart("night-chart", aggregatedNightData, crimeTypes, globalMax);
 });
