@@ -50,8 +50,14 @@ async function loadData() {
   return data;
 }
 
-const dayMap = L.map("day-map", { minZoom: 10 }).setView([41.8, -87.7], 11);
-const nightMap = L.map("night-map", { minZoom: 10 }).setView([41.8, -87.7], 11);
+const dayMap = L.map("day-map", { zoomControl: false, minZoom: 10 }).setView(
+  [41.8, -87.7],
+  11
+);
+const nightMap = L.map("night-map", {
+  zoomControl: false,
+  minZoom: 10,
+}).setView([41.8, -87.7], 11);
 
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
   attribution:

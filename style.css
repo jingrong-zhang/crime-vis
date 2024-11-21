@@ -3,14 +3,31 @@ body {
   font-family: Arial, sans-serif;
 }
 
+.static {
+  position: absolute;
+  z-index: 1000;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.title-image {
+  width: 3rem;
+}
+
 .chart-container {
   height: 200px;
   width: 50%;
   position: absolute;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.5);
   overflow: hidden;
-  border-top: 1px solid red;
+  /* border-top: 1px solid red; */
   z-index: 1000;
 }
 
@@ -22,7 +39,7 @@ body {
   right: 0;
 }
 
-#map-container {
+.map-container {
   display: flex;
   height: 100vh;
 }
