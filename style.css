@@ -5,7 +5,7 @@ body {
 
 #map-container {
   display: flex;
-  height: 100vh; /* Adjust based on design needs */
+  height: 100vh;
 }
 
 #day-map,
@@ -17,12 +17,13 @@ body {
 .flower-center {
   fill: white;
   stroke: black;
-  stroke-width: 1;
+  stroke-width: 0.5;
 }
 
 .petal {
   fill: none;
-  stroke-width: 2;
+  /* stroke-width: 2; */
+  stroke-linecap: round;
 }
 
 .petal-drug {
@@ -33,4 +34,34 @@ body {
   stroke: blue;
 }
 
-/* Add more styles for petals as needed */
+.petal-low_level_property {
+  stroke: green;
+}
+
+.petal-low_level_violent {
+  stroke: orange;
+}
+
+.petal-non_criminal {
+  stroke: purple;
+}
+
+.petal-public_order {
+  stroke: yellow;
+}
+
+.petal-severe_property {
+  stroke: brown;
+}
+
+.petal-severe_violent {
+  stroke: pink;
+}
+
+.petal-sexual_offenses {
+  stroke: teal;
+}
+
+.petal-weapon {
+  stroke: gray;
+}
