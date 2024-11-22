@@ -1,8 +1,6 @@
 // Load the CSV data
-async function loadData() {
-  // const response = await fetch("data/data_pivot_year.csv");
-  // const response = await fetch("data/data_pivot_quarter.csv");
-  const response = await fetch("data/data_pivot_month.csv");
+async function loadData(source) {
+  const response = await fetch(`data/data_pivot_${source}.csv`);
   const text = await response.text();
 
   // Parse CSV data
@@ -103,12 +101,12 @@ function createFlowerSVG(values) {
   flower.setAttribute("width", 100);
   flower.setAttribute("height", 100);
 
-  const center = document.createElementNS(svgNS, "circle");
-  center.setAttribute("cx", 50);
-  center.setAttribute("cy", 50);
-  center.setAttribute("r", 10);
-  center.setAttribute("class", "flower-center");
-  flower.appendChild(center);
+  // const center = document.createElementNS(svgNS, "circle");
+  // center.setAttribute("cx", 50);
+  // center.setAttribute("cy", 50);
+  // center.setAttribute("r", 10);
+  // center.setAttribute("class", "flower-center");
+  // flower.appendChild(center);
 
   const petalData = [
     { key: "drug", value: drug, className: "petal-drug" },
@@ -374,20 +372,18 @@ function aggregateDataByTime(data, crimeTypes) {
     (d) => d.time
   );
 
-  // Flatten the grouped data into an array
   return aggregated.map(([, values]) => values);
 }
 
-// Synchronize dayMap and nightMap
 syncMaps(dayMap, nightMap);
 syncMaps(nightMap, dayMap);
 
-// Declare these variables globally
 let dayData = [];
 let nightData = [];
 
-// Load the CSV data
-loadData().then((data) => {
+async function initializeVisualization(source) {
+  const data = await loadData(source);
+
   dayData = data.filter((d) => d.DN === "D");
   nightData = data.filter((d) => d.DN === "N");
 
@@ -430,4 +426,24 @@ loadData().then((data) => {
     globalMax,
     (start, end) => onBrushEnd(start, end)
   );
+}
+
+document.querySelectorAll('input[name="data-switch"]').forEach((input) => {
+  input.addEventListener("change", async (event) => {
+    const source = event.target.value;
+
+    dayMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker) dayMap.removeLayer(layer);
+    });
+    nightMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker) nightMap.removeLayer(layer);
+    });
+
+    d3.select("#day-chart").selectAll("*").remove();
+    d3.select("#night-chart").selectAll("*").remove();
+
+    initializeVisualization(source);
+  });
 });
+
+initializeVisualization("month");

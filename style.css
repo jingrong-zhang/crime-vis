@@ -20,6 +20,21 @@ body {
   width: 3rem;
 }
 
+.selection-container {
+  position: absolute;
+  top: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 1rem;
+  font-family: Arial, sans-serif;
+}
+
 .chart-container {
   height: 200px;
   width: 50%;
