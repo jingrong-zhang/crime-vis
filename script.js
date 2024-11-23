@@ -470,42 +470,42 @@ document.querySelectorAll('input[name="data-switch"]').forEach((input) => {
 initializeVisualization("month");
 
 const colorMap = {
-  drug: { color: "red", thresholds: { month: 100, quarter: 1000, year: 1200 } },
+  drug: { color: "red", thresholds: { month: 14, quarter: 41, year: 162 } },
   financial: {
     color: "blue",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 55, quarter: 163, year: 675 },
   },
   low_level_property: {
     color: "green",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 150, quarter: 447, year: 1808 },
   },
   low_level_violent: {
     color: "orange",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 2, quarter: 3, year: 9 },
   },
   non_criminal: {
     color: "purple",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 63, quarter: 189, year: 781 },
   },
   public_order: {
     color: "cyan",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 6, quarter: 18, year: 77 },
   },
   severe_property: {
     color: "brown",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 355, quarter: 1059, year: 4670 },
   },
   severe_violent: {
     color: "pink",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 343, quarter: 993, year: 4279 },
   },
   sexual_offenses: {
     color: "teal",
-    thresholds: { month: 100, quarter: 1000, year: 1200 },
+    thresholds: { month: 22, quarter: 65, year: 290 },
   },
   weapon: {
     color: "gray",
-    thresholds: { month: 100, quarter: 1000, year: 10000 },
+    thresholds: { month: 36, quarter: 111, year: 459 },
   },
 };
 
