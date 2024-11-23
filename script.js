@@ -246,16 +246,6 @@ function onBrushEnd(start, end) {
   addFlowersToMap(nightMap, filteredNightData);
 }
 
-function updateBrushAndCharts(chart, timeScale, start, end) {
-  const newBrushRange = [timeScale(start), timeScale(end)];
-
-  // Update the brush position
-  chart.select(".brush").call(d3.brushX().move, newBrushRange);
-
-  // Update the visualization with the new range
-  onBrushEnd(start, end);
-}
-
 function createLineChart(containerId, data, crimeTypes, globalMax, onBrushEnd) {
   const svgWidth = 600;
   const svgHeight = 190;
@@ -454,7 +444,6 @@ function clearMarkers(map) {
   });
 }
 
-// Reactivate the first timeframe when switching data
 document.querySelectorAll('input[name="data-switch"]').forEach((input) => {
   input.addEventListener("change", async (event) => {
     const source = event.target.value;
@@ -470,31 +459,11 @@ document.querySelectorAll('input[name="data-switch"]').forEach((input) => {
     // Reinitialize visualization with the selected source
     await initializeVisualization(source);
 
-    // Get the earliest time range and set it as active
-    const timeExtent = d3.extent(dayData, (d) => d.time); // Assuming dayData contains the full range
-    const initialStartTime = Math.floor(timeExtent[0]);
-    const initialEndTime = initialStartTime + 0.7;
-
-    // Update global active time range
-    activeStartTime = initialStartTime;
-    activeEndTime = initialEndTime;
-
-    // Reactivate the brush on both charts
-    const dayChart = d3.select("#day-chart").select("svg");
-    const nightChart = d3.select("#night-chart").select("svg");
-
-    updateBrushAndCharts(
-      dayChart,
-      d3.scaleLinear().domain(timeExtent).range([0, 600]),
-      initialStartTime,
-      initialEndTime
-    );
-    updateBrushAndCharts(
-      nightChart,
-      d3.scaleLinear().domain(timeExtent).range([0, 600]),
-      initialStartTime,
-      initialEndTime
-    );
+    // Reset visibility controls for crime types
+    Object.keys(colorMap).forEach((type) => {
+      const isVisible = true;
+      controlDataDisplay(type, source, isVisible);
+    });
   });
 });
 
