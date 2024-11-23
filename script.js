@@ -177,6 +177,13 @@ function createFlowerSVG(values, globalMin, globalMax) {
     flower.appendChild(line);
   });
 
+  const center = document.createElementNS(flower.namespaceURI, "circle");
+  center.setAttribute("cx", 50);
+  center.setAttribute("cy", 50);
+  center.setAttribute("r", 20);
+  center.setAttribute("class", "flower-center");
+  flower.appendChild(center);
+
   return flower;
 }
 
@@ -541,7 +548,7 @@ function getThreshold(type, timeframe) {
     return colorMap[type].thresholds[timeframe];
   }
   console.warn(`Threshold for ${type} and ${timeframe} not defined`);
-  return 100; // Default threshold if not defined
+  return 100;
 }
 
 function createDropdownMenu() {
@@ -646,91 +653,9 @@ function createDropdownMenu() {
       activeList = isVisible ? null : crimeList;
 
       // Control data display
-      controlDataDisplay(type, "month", !isVisible); // Example timeframe: month
+      controlDataDisplay(type, "month", !isVisible);
     });
   });
-}
-
-function controlDataDisplay(type, timeframe, isVisible) {
-  const crimeTypes = [
-    "drug",
-    "financial",
-    "low_level_property",
-    "low_level_violent",
-    "non_criminal",
-    "public_order",
-    "severe_property",
-    "severe_violent",
-    "sexual_offenses",
-    "weapon",
-  ];
-
-  const { globalMin, globalMax } = getGlobalMinMax(
-    [...dayData, ...nightData], // Combine datasets if necessary
-    crimeTypes
-  );
-
-  if (!isVisible) {
-    // Clear markers of the specific crime type
-    dayMap.eachLayer((layer) => {
-      if (layer instanceof L.Marker && layer.options.type === type) {
-        dayMap.removeLayer(layer);
-      }
-    });
-    nightMap.eachLayer((layer) => {
-      if (layer instanceof L.Marker && layer.options.type === type) {
-        nightMap.removeLayer(layer);
-      }
-    });
-    return;
-  }
-
-  console.log(
-    `Displaying ${type} visualizations where value > ${getThreshold(
-      type,
-      timeframe
-    )}`
-  );
-
-  // Filter data based on active time range
-  const visibleDayData = dayData
-    .filter((row) => row.time >= activeStartTime && row.time <= activeEndTime)
-    .filter((row) => row[type] > getThreshold(type, timeframe));
-
-  const visibleNightData = nightData
-    .filter((row) => row.time >= activeStartTime && row.time <= activeEndTime)
-    .filter((row) => row[type] > getThreshold(type, timeframe));
-
-  // Add markers for visible data
-  visibleDayData.forEach((row) =>
-    addMarker(dayMap, row, type, globalMin, globalMax)
-  );
-  visibleNightData.forEach((row) =>
-    addMarker(nightMap, row, type, globalMin, globalMax)
-  );
-}
-
-// Helper function to add a marker
-function addMarker(map, row, type, globalMin, globalMax) {
-  // Pass globalMin and globalMax to createFlowerSVG
-  const flowerSVG = createFlowerSVG(row, globalMin, globalMax);
-
-  const center = document.createElementNS(flowerSVG.namespaceURI, "circle");
-  center.setAttribute("cx", 50);
-  center.setAttribute("cy", 50);
-  center.setAttribute("r", 40);
-  center.setAttribute("class", "flower-center");
-  flowerSVG.appendChild(center);
-
-  flowerSVG.insertBefore(center, flowerSVG.firstChild);
-
-  const icon = L.divIcon({
-    html: flowerSVG.outerHTML,
-    className: "flower-icon",
-    iconSize: [100, 100],
-  });
-
-  L.marker([row.centroid_lat, row.centroid_lon], { icon, type }).addTo(map);
 }
 
 document.addEventListener("DOMContentLoaded", createDropdownMenu);
