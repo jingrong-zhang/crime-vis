@@ -3,6 +3,10 @@ body {
   font-family: Arial, sans-serif;
 }
 
+h1 {
+  color: grey;
+}
+
 .static {
   position: absolute;
   z-index: 1000;
@@ -68,7 +72,8 @@ body {
 .flower-center {
   fill: white;
   stroke: black;
-  stroke-width: 0.5;
+  opacity: 0.3;
+  stroke-width: 1;
 }
 
 .petal {
@@ -98,7 +103,7 @@ body {
 }
 
 .petal-public_order {
-  stroke: yellow;
+  stroke: cyan;
 }
 
 .petal-severe_property {
@@ -115,4 +120,40 @@ body {
 
 .petal-weapon {
   stroke: gray;
+}
+
+/* texttexttexttexttexttexttexttexttexttext */
+
+#dropdown-container {
+  width: 200px;
+  position: absolute;
+  z-index: 1000;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 8rem;
+  text-align: center;
+  background-color: white;
+}
+
+#crime-type-menu {
+  list-style: none;
+  padding: 0;
+}
+
+#crime-type-menu > li {
+  margin-bottom: 1rem;
+}
+
+.crime-type-title {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: small;
+}
+
+.crime-type-title:hover {
+  text-decoration: underline;
+}
+
+.crime-detailed-list {
+  font-size: 0.6rem;
 }

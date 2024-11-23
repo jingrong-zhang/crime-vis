@@ -64,7 +64,7 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
   maxZoom: 13,
 }).addTo(dayMap);
 
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
   subdomains: "abcd",
@@ -213,15 +213,23 @@ function getGlobalMax(data1, data2, crimeTypes) {
   );
 }
 
+let activeStartTime = null;
+let activeEndTime = null;
+
 function filterDataByTime(data, startTime, endTime) {
+  activeStartTime = startTime;
+  activeEndTime = endTime;
   return data.filter((d) => d.time >= startTime && d.time <= endTime);
 }
 
 function onBrushEnd(start, end) {
+  activeStartTime = start;
+  activeEndTime = end;
+
   const filteredDayData = filterDataByTime(dayData, start, end);
   const filteredNightData = filterDataByTime(nightData, start, end);
 
-  // Clear existing markers
+  // Clear all markers before adding filtered ones
   dayMap.eachLayer((layer) => {
     if (layer instanceof L.Marker) {
       dayMap.removeLayer(layer);
@@ -350,7 +358,7 @@ function getColor(type) {
     low_level_property: "green",
     low_level_violent: "orange",
     non_criminal: "purple",
-    public_order: "yellow",
+    public_order: "cyan",
     severe_property: "brown",
     severe_violent: "pink",
     sexual_offenses: "teal",
@@ -447,3 +455,164 @@ document.querySelectorAll('input[name="data-switch"]').forEach((input) => {
 });
 
 initializeVisualization("month");
+
+const colorMap = {
+  drug: { color: "red", threshold: 100 },
+  financial: { color: "blue", threshold: 100 },
+  low_level_property: { color: "green", threshold: 100 },
+  low_level_violent: { color: "orange", threshold: 100 },
+  non_criminal: { color: "purple", threshold: 100 },
+  public_order: { color: "cyan", threshold: 100 },
+  severe_property: { color: "brown", threshold: 100 },
+  severe_violent: { color: "pink", threshold: 100 },
+  sexual_offenses: { color: "teal", threshold: 100 },
+  weapon: { color: "gray", threshold: 100 },
+};
+
+function createDropdownMenu() {
+  const menu = document.getElementById("crime-type-menu");
+
+  const typeDict = {
+    severe_violent: [
+      "homicide",
+      "battery",
+      "assault",
+      "robbery",
+      "kidnapping",
+      "domestic violence",
+      "human trafficking",
+    ],
+    low_level_violent: ["intimidation"],
+    severe_property: ["theft", "burglary", "motor vehicle theft", "arson"],
+    low_level_property: ["criminal damage", "criminal trespass"],
+    sexual_offenses: [
+      "criminal sexual assault",
+      "crim sexual assault",
+      "sex offense",
+      "offense involving children",
+      "public indecency",
+      "obscenity",
+      "prostitution",
+      "stalking",
+    ],
+    financial: ["deceptive practice"],
+    drug: ["narcotics", "other narcotic violation"],
+    weapon: ["weapons violation", "concealed carry license violation"],
+    public_order: [
+      "public peace violation",
+      "liquor law violation",
+      "interference with public officer",
+      "gambling",
+      "ritualism",
+    ],
+    non_criminal: [
+      "non - criminal",
+      "non-criminal",
+      "non-criminal (subject specified)",
+      "other offense",
+    ],
+  };
+
+  let activeList = null; // Track the currently expanded list
+
+  Object.entries(colorMap).forEach(([type, { color, threshold }]) => {
+    // Create title element
+    const title = document.createElement("div");
+    title.textContent = type.replace(/_/g, " ");
+    title.style.color = color;
+    title.className = "crime-type-title";
+
+    // Create list with detailed breakdown
+    const crimeList = document.createElement("ul");
+    crimeList.className = "crime-detailed-list";
+    crimeList.style.listStyleType = "none";
+    crimeList.style.paddingLeft = "0";
+    crimeList.style.display = "none";
+
+    // Populate list with detailed breakdown from typeDict
+    const crimes = typeDict[type] || [];
+    crimes.forEach((crime) => {
+      const listItem = document.createElement("li");
+      listItem.textContent = crime.toLowerCase();
+      listItem.style.textTransform = "lowercase";
+      listItem.style.marginBottom = "4px";
+      crimeList.appendChild(listItem);
+    });
+
+    // Create list item and append title and list
+    const listItem = document.createElement("li");
+    listItem.appendChild(title);
+    listItem.appendChild(crimeList);
+    menu.appendChild(listItem);
+
+    // Toggle list visibility on title click
+    title.addEventListener("click", () => {
+      if (activeList && activeList !== crimeList) {
+        activeList.style.display = "none";
+      }
+      const isVisible = crimeList.style.display === "block";
+      crimeList.style.display = isVisible ? "none" : "block";
+      activeList = isVisible ? null : crimeList;
+
+      // Control data display
+      controlDataDisplay(type, threshold, !isVisible);
+    });
+  });
+}
+
+function controlDataDisplay(type, threshold, isVisible) {
+  if (!isVisible) {
+    // Remove all markers of this type
+    console.log(`Hiding ${type} visualizations`);
+    dayMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker && layer.options.type === type) {
+        dayMap.removeLayer(layer);
+      }
+    });
+    nightMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker && layer.options.type === type) {
+        nightMap.removeLayer(layer);
+      }
+    });
+    return;
+  }
+
+  console.log(`Displaying ${type} visualizations where value > ${threshold}`);
+
+  // Filter data based on active time range
+  const visibleDayData = dayData
+    .filter((row) => row.time >= activeStartTime && row.time <= activeEndTime)
+    .filter((row) => row[type] > threshold);
+
+  const visibleNightData = nightData
+    .filter((row) => row.time >= activeStartTime && row.time <= activeEndTime)
+    .filter((row) => row[type] > threshold);
+
+  // Add markers for visible data
+  visibleDayData.forEach((row) => addMarker(dayMap, row, type));
+  visibleNightData.forEach((row) => addMarker(nightMap, row, type));
+}
+
+// Helper function to add a marker
+function addMarker(map, row, type) {
+  const flowerSVG = createFlowerSVG(row);
+
+  const center = document.createElementNS(flowerSVG.namespaceURI, "circle");
+  center.setAttribute("cx", 50);
+  center.setAttribute("cy", 50);
+  center.setAttribute("r", 20);
+  center.setAttribute("class", "flower-center");
+  flowerSVG.appendChild(center);
+
+  flowerSVG.insertBefore(center, flowerSVG.firstChild);
+
+  const icon = L.divIcon({
+    html: flowerSVG.outerHTML,
+    className: "flower-icon",
+    iconSize: [100, 100],
+  });
+
+  L.marker([row.centroid_lat, row.centroid_lon], { icon, type }).addTo(map);
+}
+
+document.addEventListener("DOMContentLoaded", createDropdownMenu);
