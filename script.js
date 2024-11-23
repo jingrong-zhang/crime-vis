@@ -294,6 +294,18 @@ function createLineChart(containerId, data, crimeTypes, globalMax, onBrushEnd) {
 
   chart.append("g").call(d3.axisLeft(crimeScale));
 
+  svg
+    .append("text")
+    .attr("transform", `rotate(-90)`)
+    .attr("x", -svgHeight / 2)
+    .attr("y", margin.left / 2.5)
+    .attr("dy", "1em")
+    .attr("text-anchor", "middle")
+    .attr("class", "y-axis-label")
+    .attr("fill", "white")
+    .attr("font-size", "12px")
+    .text("Total number of crimes");
+
   const sortedData = data.sort((a, b) => a.time - b.time);
 
   crimeTypes.forEach((type) => {
@@ -485,42 +497,42 @@ document.querySelectorAll('input[name="data-switch"]').forEach((input) => {
 initializeVisualization("month");
 
 const colorMap = {
-  drug: { color: "red", thresholds: { month: 14, quarter: 41, year: 162 } },
+  drug: { color: "red", thresholds: { month: 14, quarter: 41, year: 270 } },
   financial: {
     color: "blue",
-    thresholds: { month: 55, quarter: 163, year: 675 },
+    thresholds: { month: 55, quarter: 163, year: 856 },
   },
   low_level_property: {
     color: "green",
-    thresholds: { month: 150, quarter: 447, year: 1808 },
+    thresholds: { month: 150, quarter: 447, year: 1753 },
   },
   low_level_violent: {
     color: "orange",
-    thresholds: { month: 2, quarter: 3, year: 9 },
+    thresholds: { month: 2, quarter: 3, year: 12 },
   },
   non_criminal: {
     color: "purple",
-    thresholds: { month: 63, quarter: 189, year: 781 },
+    thresholds: { month: 63, quarter: 189, year: 777 },
   },
   public_order: {
     color: "cyan",
-    thresholds: { month: 6, quarter: 18, year: 77 },
+    thresholds: { month: 6, quarter: 18, year: 85 },
   },
   severe_property: {
     color: "brown",
-    thresholds: { month: 355, quarter: 1059, year: 4670 },
+    thresholds: { month: 355, quarter: 1059, year: 4790 },
   },
   severe_violent: {
     color: "pink",
-    thresholds: { month: 343, quarter: 993, year: 4279 },
+    thresholds: { month: 343, quarter: 993, year: 3940 },
   },
   sexual_offenses: {
     color: "teal",
-    thresholds: { month: 22, quarter: 65, year: 290 },
+    thresholds: { month: 22, quarter: 65, year: 273 },
   },
   weapon: {
     color: "gray",
-    thresholds: { month: 36, quarter: 111, year: 459 },
+    thresholds: { month: 36, quarter: 111, year: 448 },
   },
 };
 
