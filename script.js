@@ -246,6 +246,16 @@ function onBrushEnd(start, end) {
   addFlowersToMap(nightMap, filteredNightData);
 }
 
+function updateBrushAndCharts(chart, timeScale, start, end) {
+  const newBrushRange = [timeScale(start), timeScale(end)];
+
+  // Update the brush position
+  chart.select(".brush").call(d3.brushX().move, newBrushRange);
+
+  // Update the visualization with the new range
+  onBrushEnd(start, end);
+}
+
 function createLineChart(containerId, data, crimeTypes, globalMax, onBrushEnd) {
   const svgWidth = 600;
   const svgHeight = 190;
@@ -436,38 +446,107 @@ async function initializeVisualization(source) {
   );
 }
 
+function clearMarkers(map) {
+  map.eachLayer((layer) => {
+    if (layer instanceof L.Marker) {
+      map.removeLayer(layer);
+    }
+  });
+}
+
+// Reactivate the first timeframe when switching data
 document.querySelectorAll('input[name="data-switch"]').forEach((input) => {
   input.addEventListener("change", async (event) => {
     const source = event.target.value;
 
-    dayMap.eachLayer((layer) => {
-      if (layer instanceof L.Marker) dayMap.removeLayer(layer);
-    });
-    nightMap.eachLayer((layer) => {
-      if (layer instanceof L.Marker) nightMap.removeLayer(layer);
-    });
+    // Clear all existing markers from both maps
+    clearMarkers(dayMap);
+    clearMarkers(nightMap);
 
+    // Clear the charts
     d3.select("#day-chart").selectAll("*").remove();
     d3.select("#night-chart").selectAll("*").remove();
 
-    initializeVisualization(source);
+    // Reinitialize visualization with the selected source
+    await initializeVisualization(source);
+
+    // Get the earliest time range and set it as active
+    const timeExtent = d3.extent(dayData, (d) => d.time); // Assuming dayData contains the full range
+    const initialStartTime = Math.floor(timeExtent[0]);
+    const initialEndTime = initialStartTime + 0.7;
+
+    // Update global active time range
+    activeStartTime = initialStartTime;
+    activeEndTime = initialEndTime;
+
+    // Reactivate the brush on both charts
+    const dayChart = d3.select("#day-chart").select("svg");
+    const nightChart = d3.select("#night-chart").select("svg");
+
+    updateBrushAndCharts(
+      dayChart,
+      d3.scaleLinear().domain(timeExtent).range([0, 600]),
+      initialStartTime,
+      initialEndTime
+    );
+    updateBrushAndCharts(
+      nightChart,
+      d3.scaleLinear().domain(timeExtent).range([0, 600]),
+      initialStartTime,
+      initialEndTime
+    );
   });
 });
 
 initializeVisualization("month");
 
 const colorMap = {
-  drug: { color: "red", threshold: 100 },
-  financial: { color: "blue", threshold: 100 },
-  low_level_property: { color: "green", threshold: 100 },
-  low_level_violent: { color: "orange", threshold: 100 },
-  non_criminal: { color: "purple", threshold: 100 },
-  public_order: { color: "cyan", threshold: 100 },
-  severe_property: { color: "brown", threshold: 100 },
-  severe_violent: { color: "pink", threshold: 100 },
-  sexual_offenses: { color: "teal", threshold: 100 },
-  weapon: { color: "gray", threshold: 100 },
+  drug: { color: "red", thresholds: { month: 100, quarter: 1000, year: 1200 } },
+  financial: {
+    color: "blue",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  low_level_property: {
+    color: "green",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  low_level_violent: {
+    color: "orange",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  non_criminal: {
+    color: "purple",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  public_order: {
+    color: "cyan",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  severe_property: {
+    color: "brown",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  severe_violent: {
+    color: "pink",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  sexual_offenses: {
+    color: "teal",
+    thresholds: { month: 100, quarter: 1000, year: 1200 },
+  },
+  weapon: {
+    color: "gray",
+    thresholds: { month: 100, quarter: 1000, year: 10000 },
+  },
 };
+
+function getThreshold(type, timeframe) {
+  if (colorMap[type] && colorMap[type].thresholds[timeframe]) {
+    return colorMap[type].thresholds[timeframe];
+  }
+  console.warn(`Threshold for ${type} and ${timeframe} not defined`);
+  return 100; // Default threshold if not defined
+}
 
 function createDropdownMenu() {
   const menu = document.getElementById("crime-type-menu");
@@ -560,10 +639,11 @@ function createDropdownMenu() {
   });
 }
 
-function controlDataDisplay(type, threshold, isVisible) {
+function controlDataDisplay(type, timeframe, isVisible) {
+  const threshold = getThreshold(type, timeframe);
+
   if (!isVisible) {
-    // Remove all markers of this type
-    console.log(`Hiding ${type} visualizations`);
+    // Clear markers of the specific crime type
     dayMap.eachLayer((layer) => {
       if (layer instanceof L.Marker && layer.options.type === type) {
         dayMap.removeLayer(layer);
