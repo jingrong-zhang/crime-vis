@@ -561,12 +561,28 @@ function createDropdownMenu() {
     ],
   };
 
+  const descriptions = {
+    drug: "Drug rehabilitation center",
+    financial: "Community awareness program",
+    low_level_property: "Police patrol",
+    low_level_violent: "Police patrol",
+    non_criminal: "None",
+    public_order: "Police patrol",
+    severe_property: "Police patrol",
+    severe_violent: "Police patrol",
+    sexual_offenses: "Victims outreach center",
+    weapon: "Police patrol",
+  };
+
   let activeList = null; // Track the currently expanded list
 
-  Object.entries(colorMap).forEach(([type, { color, threshold }]) => {
+  Object.entries(colorMap).forEach(([type, { color }]) => {
+    // Use description for title if available
+    const titleText = descriptions[type] || type.replace(/_/g, " ");
+
     // Create title element
     const title = document.createElement("div");
-    title.textContent = type.replace(/_/g, " ");
+    title.textContent = `${type.replace(/_/g, " ")} :: ${titleText}`;
     title.style.color = color;
     title.className = "crime-type-title";
 
@@ -603,7 +619,7 @@ function createDropdownMenu() {
       activeList = isVisible ? null : crimeList;
 
       // Control data display
-      controlDataDisplay(type, threshold, !isVisible);
+      controlDataDisplay(type, "month", !isVisible); // Example timeframe: month
     });
   });
 }
