@@ -285,7 +285,12 @@ function createLineChart(containerId, data, crimeTypes, globalMax, onBrushEnd) {
   chart
     .append("g")
     .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(timeScale).tickFormat(d3.format("d")));
+    .call(
+      d3
+        .axisBottom(timeScale)
+        .tickValues([...new Set(data.map((d) => d.time))])
+        .tickFormat(d3.format("d"))
+    );
 
   chart.append("g").call(d3.axisLeft(crimeScale));
 
