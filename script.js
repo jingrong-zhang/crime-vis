@@ -57,7 +57,8 @@ const nightMap = L.map("night-map", {
   minZoom: 10,
 }).setView([41.8, -87.7], 11);
 
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+// L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
   subdomains: "abcd",
@@ -80,8 +81,7 @@ function syncMaps(sourceMap, targetMap) {
   });
 }
 
-// Function to draw a flower
-function createFlowerSVG(values) {
+function createFlowerSVG(values, globalMin, globalMax) {
   const {
     drug,
     financial,
@@ -100,13 +100,6 @@ function createFlowerSVG(values) {
   const flower = document.createElementNS(svgNS, "svg");
   flower.setAttribute("width", 100);
   flower.setAttribute("height", 100);
-
-  // const center = document.createElementNS(svgNS, "circle");
-  // center.setAttribute("cx", 50);
-  // center.setAttribute("cy", 50);
-  // center.setAttribute("r", 10);
-  // center.setAttribute("class", "flower-center");
-  // flower.appendChild(center);
 
   const petalData = [
     { key: "drug", value: drug, className: "petal-drug" },
@@ -151,20 +144,16 @@ function createFlowerSVG(values) {
 
   const angleStep = (2 * Math.PI) / petalData.length;
 
-  const allValues = petalData.map((petal) => petal.value);
-  const minValue = Math.min(...allValues);
-  const maxValue = Math.max(...allValues);
+  const minLength = 10;
+  const maxLength = 40;
 
   petalData.forEach((petal, index) => {
     const angle = index * angleStep;
 
-    const minLength = 10;
-    const maxLength = 40;
-
     const length =
       minLength +
-      ((petal.value - minValue) * (maxLength - minLength)) /
-        (maxValue - minValue);
+      ((petal.value - globalMin) * (maxLength - minLength)) /
+        (globalMax - globalMin);
 
     const x2 = 50 + Math.cos(angle) * length;
     const y2 = 50 + Math.sin(angle) * length;
@@ -176,15 +165,13 @@ function createFlowerSVG(values) {
     line.setAttribute("y2", y2);
     line.setAttribute("class", `petal ${petal.className}`);
 
-    // console.log(`Line ${index} - x2: ${x2}, y2: ${y2}, value: ${petal.value}`);
-
     const minWidth = 2;
     const maxWidth = 5;
 
     const strokeWidth =
       minWidth +
-      ((petal.value - minValue) * (maxWidth - minWidth)) /
-        (maxValue - minValue);
+      ((petal.value - globalMin) * (maxWidth - minWidth)) /
+        (globalMax - globalMin);
     line.setAttribute("stroke-width", strokeWidth);
 
     flower.appendChild(line);
@@ -193,10 +180,33 @@ function createFlowerSVG(values) {
   return flower;
 }
 
+function getGlobalMinMax(data, crimeTypes) {
+  const allValues = data.flatMap((row) => crimeTypes.map((type) => row[type]));
+  return {
+    globalMin: Math.min(...allValues),
+    globalMax: Math.max(...allValues),
+  };
+}
+
 // Add flowers to maps
 function addFlowersToMap(map, data) {
+  const crimeTypes = [
+    "drug",
+    "financial",
+    "low_level_property",
+    "low_level_violent",
+    "non_criminal",
+    "public_order",
+    "severe_property",
+    "severe_violent",
+    "sexual_offenses",
+    "weapon",
+  ];
+
+  const { globalMin, globalMax } = getGlobalMinMax(data, crimeTypes);
+
   data.forEach((row) => {
-    const flowerSVG = createFlowerSVG(row);
+    const flowerSVG = createFlowerSVG(row, globalMin, globalMax);
     const icon = L.divIcon({
       html: flowerSVG.outerHTML,
       className: "flower-icon",
@@ -625,7 +635,23 @@ function createDropdownMenu() {
 }
 
 function controlDataDisplay(type, timeframe, isVisible) {
-  const threshold = getThreshold(type, timeframe);
+  const crimeTypes = [
+    "drug",
+    "financial",
+    "low_level_property",
+    "low_level_violent",
+    "non_criminal",
+    "public_order",
+    "severe_property",
+    "severe_violent",
+    "sexual_offenses",
+    "weapon",
+  ];
+
+  const { globalMin, globalMax } = getGlobalMinMax(
+    [...dayData, ...nightData], // Combine datasets if necessary
+    crimeTypes
+  );
 
   if (!isVisible) {
     // Clear markers of the specific crime type
@@ -642,30 +668,40 @@ function controlDataDisplay(type, timeframe, isVisible) {
     return;
   }
 
-  console.log(`Displaying ${type} visualizations where value > ${threshold}`);
+  console.log(
+    `Displaying ${type} visualizations where value > ${getThreshold(
+      type,
+      timeframe
+    )}`
+  );
 
   // Filter data based on active time range
   const visibleDayData = dayData
     .filter((row) => row.time >= activeStartTime && row.time <= activeEndTime)
-    .filter((row) => row[type] > threshold);
+    .filter((row) => row[type] > getThreshold(type, timeframe));
 
   const visibleNightData = nightData
     .filter((row) => row.time >= activeStartTime && row.time <= activeEndTime)
-    .filter((row) => row[type] > threshold);
+    .filter((row) => row[type] > getThreshold(type, timeframe));
 
   // Add markers for visible data
-  visibleDayData.forEach((row) => addMarker(dayMap, row, type));
-  visibleNightData.forEach((row) => addMarker(nightMap, row, type));
+  visibleDayData.forEach((row) =>
+    addMarker(dayMap, row, type, globalMin, globalMax)
+  );
+  visibleNightData.forEach((row) =>
+    addMarker(nightMap, row, type, globalMin, globalMax)
+  );
 }
 
 // Helper function to add a marker
-function addMarker(map, row, type) {
-  const flowerSVG = createFlowerSVG(row);
+function addMarker(map, row, type, globalMin, globalMax) {
+  // Pass globalMin and globalMax to createFlowerSVG
+  const flowerSVG = createFlowerSVG(row, globalMin, globalMax);
 
   const center = document.createElementNS(flowerSVG.namespaceURI, "circle");
   center.setAttribute("cx", 50);
   center.setAttribute("cy", 50);
-  center.setAttribute("r", 20);
+  center.setAttribute("r", 40);
   center.setAttribute("class", "flower-center");
   flowerSVG.appendChild(center);
 

@@ -70,9 +70,9 @@ h1 {
 }
 
 .flower-center {
-  fill: white;
-  stroke: black;
-  opacity: 0.3;
+  stroke: white;
+  fill: none;
+  opacity: 0.5;
   stroke-width: 1;
 }
 
